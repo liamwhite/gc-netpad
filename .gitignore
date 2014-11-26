@@ -1,0 +1,8 @@
+# Object files
+*.o
+*.elf
+*.dol
+client
+
+# Build directory
+build/

@@ -104,19 +104,19 @@ static int _net_init(void)
 static int _init_uinput(void)
 {
     // Try to open the uinput file descriptor.
-    /*const char* uinput_filename[] = {
+    const char* uinput_filename[] = {
         "/dev/uinput",
         "/dev/input/uinput",
         "/dev/misc/uinput"
     };
 
-    int uinput_fd;
+    int uinput_fd = -1;
+
     for (size_t i = 0; i < 3; ++i) {
-        if ((uinput_fd = open(uinput_filename[i], O_RDWR)) >= 0) {
+        if ((uinput_fd = open(uinput_filename[i], O_RDWR)) != -1) {
             break;
         }
-    }*/
-    int uinput_fd = open("/dev/uinput", O_RDWR);
+    }
 
     if (uinput_fd < 0) {
         return -1;

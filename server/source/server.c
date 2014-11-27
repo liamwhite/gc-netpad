@@ -40,7 +40,7 @@ static int _net_init(void);
 struct _padstat_pack {
     short buttonsheld; //, buttonsdown, buttonsup;
     char stick1X, stick1Y, stick2X, stick2Y;
-} __attribute__((packed));
+} ATTRIBUTE_PACKED;
 
 // @pre PAD_Init() was already called
 static void _get_pad_data(struct _padstat_pack *in, int pad)

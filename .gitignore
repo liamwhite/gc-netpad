@@ -6,3 +6,6 @@ client
 
 # Build directory
 build/
+
+# Extra files
+*.c~

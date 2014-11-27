@@ -38,7 +38,7 @@ void *initialise();
 static int _net_init(void);
 
 struct _padstat_pack {
-    short buttonsheld, buttonsdown, buttonsup;
+    short buttonsheld; //, buttonsdown, buttonsup;
     char stick1X, stick1Y, stick2X, stick2Y;
 } __attribute__((packed));
 
@@ -48,8 +48,8 @@ static void _get_pad_data(struct _padstat_pack *in, int pad)
     PAD_ScanPads();
 
     in->buttonsheld = PAD_ButtonsHeld(pad);
-    in->buttonsdown = PAD_ButtonsDown(pad);
-    in->buttonsup   = PAD_ButtonsUp(pad);
+    //in->buttonsdown = PAD_ButtonsDown(pad);
+    //in->buttonsup   = PAD_ButtonsUp(pad);
     in->stick1X     = (char)PAD_StickX(pad);
     in->stick1Y     = (char)PAD_StickY(pad);
     in->stick2X     = (char)PAD_SubStickX(pad);

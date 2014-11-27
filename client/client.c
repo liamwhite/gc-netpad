@@ -39,15 +39,15 @@ static const int kStickRadius = 128;
 
 // Struct holding all data required for a complete controller stat
 struct _padstat_pack {
-    short buttonsheld, buttonsdown, buttonsup;
+    short buttonsheld; //, buttonsdown, buttonsup;
     char stick1X, stick1Y, stick2X, stick2Y;
 } __attribute__((packed));
 
 // Swap the bytes of the shorts to make up for the different endian-ness of the PPC vs Intel
 static inline void _endian_byteswap(struct _padstat_pack *in) {
     in->buttonsheld = bswap_16(in->buttonsheld);
-    in->buttonsdown = bswap_16(in->buttonsdown);
-    in->buttonsup   = bswap_16(in->buttonsup);
+    //in->buttonsdown = bswap_16(in->buttonsdown);
+    //in->buttonsup   = bswap_16(in->buttonsup);
 }
 
 static int _net_init(void);

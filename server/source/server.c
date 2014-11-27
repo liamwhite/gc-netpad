@@ -76,6 +76,9 @@ int main(int argc, char **argv)
             // Fire
             net_send(csock, &pad1, sizeof(struct _padstat_pack), 0);
         }
+
+        if (SYS_ResetButtonDown())
+            exit(0);
     }
 
     net_close(csock);

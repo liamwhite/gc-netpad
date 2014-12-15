@@ -34,17 +34,13 @@ Running
 ----------------
 
 Run the generated DOL or ELF file on your Wii.
-On the computer, become root:
-user$ sudo -s
-[sudo] password for user:
-user#
-
-Export the WII environment variable that points to the Wii's IP address (use 'nslookup wii'
-if you don't know)
-user# export WII="192.168.1.5"
+Find the the Wii's IP address (use 'nslookup wii' if you don't know)
 
 Run the client:
-user# ./client
+
+user$ sudo ./client <Wii IP>
+[sudo] password for user:
+Net initialized
 
 There will now be a new input device available in programs such as Dolphin.
 

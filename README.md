@@ -15,18 +15,18 @@ platforms.
 
 ### Compiling
 
-Enter client/, type 'make' to compile.
+Enter client/, type <code>make</code> to compile.
 
 Building the server assumes that you have a way to run the generated files, and that
 you already have devkitPro and libogc available.
 
-Enter server/
 <pre>
-export DEVKITPPC=/path/to/devkitppc
-export DEVKITPRO=/path/containing-libogc/
+$ cd gc-netpad/server
+$ export DEVKITPPC=/path/to/devkitppc
+$ export DEVKITPRO=/path/containing-libogc/
+$ make
 </pre>
-Type 'make' to compile.
-If you have wiiload in your environment, type 'make run' to wiiload the executable.
+If you have wiiload in your environment, type <code>make run</code> to wiiload the executable.
 
 
 ### Running
@@ -45,6 +45,7 @@ Net initialized
 There will now be a new input device available in programs such as Dolphin.
 
 ### Todo
-
-Support for multiple GC pads, possibly Wiimotes as well?
-Provide precompiled Wii homebrew package
+<ul>
+  <li>Support for multiple GC pads, possibly Wiimotes as well?</li>
+  <li>Provide precompiled Wii homebrew package</li>
+</ul>

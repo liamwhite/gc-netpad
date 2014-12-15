@@ -32,12 +32,12 @@ If you have wiiload in your environment, type <code>make run</code> to wiiload t
 ### Running
 
 Run the generated DOL or ELF file on your Wii.
-Find the the Wii's IP address (use <code>nslookup wii</code> if you don't know)
+Find the the Wii's IP address (or just use <code>wii</code> if you don't know)
 
 Run the client:
 
 <pre>
-user$ sudo ./client &lt;Wii IP&gt;
+user$ sudo ./client &lt;wii-hostname&gt;
 [sudo] password for user:
 Net initialized
 </pre>

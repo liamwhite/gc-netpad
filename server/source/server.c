@@ -119,7 +119,7 @@ static int _net_init(void)
     memset (&client, 0, sizeof (client));
 
     server.sin_family = AF_INET;
-    server.sin_port = htons(80);
+    server.sin_port = htons(301);
     server.sin_addr.s_addr = INADDR_ANY;
     bind = net_bind (sock, (struct sockaddr *) &server, sizeof(server));
     if (bind) {

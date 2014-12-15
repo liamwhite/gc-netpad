@@ -92,7 +92,7 @@ static int _net_init(char const* wii)
 
     // Connect socket
     sock.sin_family = AF_INET;
-    sock.sin_port = htons(80);
+    sock.sin_port = htons(301);
     inet_pton(AF_INET, wii, &sock.sin_addr);
 
     return connect(desc, (struct sockaddr *) &sock, sizeof(struct sockaddr_in));

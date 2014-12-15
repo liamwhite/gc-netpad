@@ -24,6 +24,7 @@
 #include <fcntl.h>
 #include <linux/input.h>
 #include <linux/uinput.h>
+#include <netdb.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,12 +81,17 @@ int main(int argc, char* argv[])
 static int _net_init(char const* wii)
 {
     struct sockaddr_in sock = {0};
+    struct addrinfo *info   = NULL;
+
+    if (getaddrinfo(wii, NULL, NULL, &info) != 0) {
+        printf("Failed to resolve %s\n", wii);
+        return -1;
+    }
 
     // Open socket for TCP communication
     desc = socket(AF_INET, SOCK_STREAM, 6);
 
     if (desc == -1) {
-    
         printf("Failed to open socket\n");
         return -1;
     }
@@ -93,7 +99,9 @@ static int _net_init(char const* wii)
     // Connect socket
     sock.sin_family = AF_INET;
     sock.sin_port = htons(301);
-    inet_pton(AF_INET, wii, &sock.sin_addr);
+    sock.sin_addr = ((struct sockaddr_in *)info->ai_addr)->sin_addr;
+
+    freeaddrinfo(info);
 
     return connect(desc, (struct sockaddr *) &sock, sizeof(struct sockaddr_in));
 }

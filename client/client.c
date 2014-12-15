@@ -50,17 +50,22 @@ static inline void _endian_byteswap(struct _padstat_pack *in) {
     //in->buttonsup   = bswap_16(in->buttonsup);
 }
 
-static int _net_init(void);
+static int _net_init(char const* wii);
 static void _pad_data_to_uinput(struct _padstat_pack const *in);
 
 // Socket descriptor
 static int desc;
 
-int main(void)
+int main(int argc, char* argv[])
 {
     struct _padstat_pack pad = {0};
 
-    if (_net_init() != 0) return 1;
+    if (argc != 2) {
+        printf("Usage: %s <Wii IP>\n", argv[0]);
+        return 1;
+    }
+
+    if (_net_init(argv[1]) != 0) return 1;
 
     printf("Net initialized\n");
 
@@ -72,15 +77,9 @@ int main(void)
     }
 }
 
-static int _net_init(void)
+static int _net_init(char const* wii)
 {
     struct sockaddr_in sock = {0};
-
-    char const *wii = getenv("WII");
-    if (!wii || *wii == '\0') {
-        printf("Failed to get Wii's IP address from shell env WII");
-        return -1;
-    }
 
     // Open socket for TCP communication
     desc = socket(AF_INET, SOCK_STREAM, 6);

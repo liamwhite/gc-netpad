@@ -32,7 +32,7 @@ If you have wiiload in your environment, type <code>make run</code> to wiiload t
 ### Running
 
 Run the generated DOL or ELF file on your Wii.
-Find the the Wii's IP address (use 'nslookup wii' if you don't know)
+Find the the Wii's IP address (use <code>nslookup wii</code> if you don't know)
 
 Run the client:
 

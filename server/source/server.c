@@ -28,6 +28,7 @@
 #include <network.h>
 #include <debug.h>
 #include <errno.h>
+#include <wiiuse/wpad.h>
 
 static void *xfb = NULL;
 static GXRModeObj *rmode = NULL;
@@ -37,48 +38,82 @@ static s32 sock, csock;
 void *initialise();
 static int _net_init(void);
 
-struct _padstat_pack {
-    short buttonsheld; //, buttonsdown, buttonsup;
-    char stick1X, stick1Y, stick2X, stick2Y;
+/*struct vec3w_t {
+    uint32_t x, y, z;
+} vec3w_t;*/
+
+#define _w_round(x) ((x)>=0?(long)((x)+0.5):(long)((x)-0.5))
+
+typedef struct vec3sw_t {
+    int32_t x, y, z;
+} vec3sw_t;
+
+struct _wpad_pack {
+    int32_t buttonsheld;
+    struct vec3sw_t accel;
+    struct vec3sw_t orient;
+    //struct vec3w_t shake; wait
 } ATTRIBUTE_PACKED;
 
-// @pre PAD_Init() was already called
-static void _get_pad_data(struct _padstat_pack *in, int pad)
-{
-    PAD_ScanPads();
 
-    in->buttonsheld = PAD_ButtonsHeld(pad);
-    //in->buttonsdown = PAD_ButtonsDown(pad);
-    //in->buttonsup   = PAD_ButtonsUp(pad);
-    in->stick1X     = (char)PAD_StickX(pad);
-    in->stick1Y     = (char)PAD_StickY(pad);
-    in->stick2X     = (char)PAD_SubStickX(pad);
-    in->stick2Y     = (char)PAD_SubStickY(pad);
+static void _evcb(int chan, const WPADData *data) {}
+
+static void _get_pad_data(struct _wpad_pack *in, int pad)
+{
+    in->buttonsheld = WPAD_ButtonsHeld(pad);
+
+    struct gforce_t force;
+    WPAD_GForce(pad, &force);
+    in->accel.x = _w_round(fabs(force.x));
+    in->accel.y = _w_round(fabs(force.y));
+    in->accel.z = _w_round(fabs(force.z));
+    printf("\r %f]%f]%f     ", force.x, force.y, force.z);
+    struct orient_t orient;
+    WPAD_Orientation(pad, &orient);
+    in->orient.x = (int)orient.roll;
+    in->orient.y = (int)orient.pitch;
+    in->orient.z = (int)orient.yaw;
 }
 
 int main(int argc, char **argv)
 {
-    struct _padstat_pack pad1 = {0};
-    struct _padstat_pack pad_tmp = {0};
+    //struct _padstat_pack pad1 = {0};
+    //struct _padstat_pack pad_tmp = {0};
+    u32 type; // shit nobody cares about
+    struct _wpad_pack pad1 = {0};
+    struct _wpad_pack pad_tmp = {0};
 
     xfb = initialise();
 
     if (_net_init() != 0) return 1;
 
+
+    printf("\n\nSync up a wiimote now\n\n");
+    // Wait for the first wiimote to sync up
+
     // Now we've trapped our client, start sending our payload
     while (1) {
-        _get_pad_data(&pad_tmp, 0);
+        WPAD_ReadPending(WPAD_CHAN_ALL, _evcb);
+        WPAD_ScanPads();
+        s32 res = WPAD_Probe(0, &type);
+        if (res == WPAD_ERR_NONE) {
+            //showWiiMoteAccelerometer();
+            _get_pad_data(&pad_tmp, 0);
 
-        // Pad data are different
-        if (memcmp(&pad1, &pad_tmp, sizeof(struct _padstat_pack)) != 0) {
-            // Copy it over
-            memcpy(&pad1, &pad_tmp, sizeof(struct _padstat_pack));
-            // Fire
-            net_send(csock, &pad1, sizeof(struct _padstat_pack), 0);
+            //net_send(csock, &pad_tmp, sizeof(struct _wpad_pack), 0);
+            // Pad data are different
+            if (memcmp(&pad1, &pad_tmp, sizeof(struct _wpad_pack)) != 0) {
+                // Copy it over
+                memcpy(&pad1, &pad_tmp, sizeof(struct _wpad_pack));
+                // Fire
+                net_send(csock, &pad1, sizeof(struct _wpad_pack), 0);
+            }
+
+            if (SYS_ResetButtonDown())
+                exit(0);
+
+            WPAD_SetIdleTimeout(300);
         }
-
-        if (SYS_ResetButtonDown())
-            exit(0);
     }
 
     net_close(csock);
@@ -146,6 +181,8 @@ void *initialise()
 
     VIDEO_Init();
     PAD_Init();
+    WPAD_Init();
+    WPAD_SetDataFormat(WPAD_CHAN_0, WPAD_FMT_BTNS_ACC_IR); // >_>
 
     rmode = VIDEO_GetPreferredMode(NULL);
     framebuffer = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));

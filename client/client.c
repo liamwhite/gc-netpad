@@ -38,17 +38,34 @@
 // Virtual stick radius used by uinput.
 static const int kStickRadius = 128;
 
+typedef struct vec3w_t {
+    int32_t x, y, z;
+} vec3w_t;
+
 // Struct holding all data required for a complete controller stat
 struct _padstat_pack {
-    short buttonsheld; //, buttonsdown, buttonsup;
-    char stick1X, stick1Y, stick2X, stick2Y;
+    uint32_t buttonsheld; //, buttonsdown, buttonsup;
+
+    struct vec3w_t accel;
+    struct vec3w_t orient;
+    //char stick1X, stick1Y, stick2X, stick2Y;
 } __attribute__((packed));
 
 // Swap the bytes of the shorts to make up for the different endian-ness of the PPC vs Intel
 static inline void _endian_byteswap(struct _padstat_pack *in) {
-    in->buttonsheld = bswap_16(in->buttonsheld);
-    //in->buttonsdown = bswap_16(in->buttonsdown);
-    //in->buttonsup   = bswap_16(in->buttonsup);
+    in->buttonsheld = bswap_32(in->buttonsheld);
+    in->accel.x = bswap_32(in->accel.x);
+    in->accel.y = bswap_32(in->accel.y);
+    in->accel.z = bswap_32(in->accel.z);
+
+    // FFS UINPUT GO FAK URSELF
+    if (in->accel.x == 1) in->accel.x = 0;
+    if (in->accel.y == 1) in->accel.y = 0;
+    if (in->accel.z == 1) in->accel.z = 0;
+
+    in->orient.x = bswap_32(in->orient.x);
+    in->orient.y = bswap_32(in->orient.y);
+    in->orient.z = bswap_32(in->orient.z);
 }
 
 static int _net_init(char const* wii);
@@ -68,12 +85,14 @@ int main(int argc, char* argv[])
 
     if (_net_init(argv[1]) != 0) return 1;
 
-    printf("Net initialized\n");
+    printf("Net initialized\n\n");
 
     // Receieve data
     while (1) {
         recv(desc, &pad, sizeof(struct _padstat_pack), 0);
         _endian_byteswap(&pad);
+        printf("\r%d]%d]%d          ", pad.accel.x, pad.accel.y, pad.accel.z);
+        fflush(stdout);
         _pad_data_to_uinput(&pad);
     }
 }
@@ -131,11 +150,11 @@ static int _init_uinput(void)
 
     // Create the virtual device.
     struct uinput_user_dev dev = {0};
-    strncpy(dev.name, "NetGamecube Controller", sizeof(dev.name));
+    strncpy(dev.name, "NetWii Controller", sizeof(dev.name));
     dev.id.bustype = BUS_VIRTUAL;
 
-    // Enable joysticks: 4 axes (2 for each stick).
-    for (int i = 0; i < 4; ++i) {
+    // Enable joysticks: 6 axes.
+    for (int i = 0; i < 6; ++i) {
         dev.absmin[i] = -kStickRadius;
         dev.absmax[i] = kStickRadius;
         ioctl(uinput_fd, UI_SET_ABSBIT, i);
@@ -180,8 +199,8 @@ static void _pad_data_to_uinput(struct _padstat_pack const *in)
     struct timeval tv;
     gettimeofday(&tv, NULL);
 
-    // 16 button events + 4 axis events + 1 report event.
-    struct input_event evt[16 + 4 + 1];
+    // 16 button events + 1 report event.
+    struct input_event evt[16 + 6 + 1];
     memset(&evt, 0, sizeof(evt));
 
     // Read the 16 buttons and initialize their event object.
@@ -192,26 +211,28 @@ static void _pad_data_to_uinput(struct _padstat_pack const *in)
         memcpy(&evt[i].time, &tv, sizeof(tv));
     }
 
-    // Read the 4 axis values.
+
+    // Read the 6 axis values.
     short sticks[] = {
-        in->stick1X, in->stick1Y,
-        in->stick2X, in->stick2Y
+        in->orient.x, in->orient.y, in->orient.z, 
+        in->accel.x, in->accel.y, in->accel.z,
     };
 
-    for (int i = 16; i < 16 + 4; ++i) {
+    for (int i = 16; i < 16 + 6; ++i) {
         evt[i].type = EV_ABS;
         evt[i].code = i - 16;
         evt[i].value = sticks[i - 16]; /*((int)(sticks[i - 16] * kStickRadius));*/
         memcpy(&evt[i].time, &tv, sizeof(tv));
     }
 
+
     // Report event.
-    evt[20].type = EV_SYN;
-    evt[20].code = SYN_REPORT;
-    memcpy(&evt[20].time, &tv, sizeof(tv));
+    evt[22].type = EV_SYN;
+    evt[22].code = SYN_REPORT;
+    memcpy(&evt[22].time, &tv, sizeof(tv));
 
     // Send the events to uinput.
-    for (size_t i = 0; i < 21; ++i) {
+    for (size_t i = 0; i < 23; ++i) {
         if (write(uinput_fd, &evt[i], sizeof(evt[i])) != sizeof(evt[i])) {
             perror("write failed - sending an event to uinput");
         }

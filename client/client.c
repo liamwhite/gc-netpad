@@ -44,18 +44,13 @@ struct _padstat_pack {
     char stick1X, stick1Y, stick2X, stick2Y;
 } __attribute__((packed));
 
-// Swap the bytes of the shorts to make up for the different endian-ness of the PPC vs Intel
-static inline void _endian_byteswap(struct _padstat_pack *in) {
-    in->buttonsheld = bswap_16(in->buttonsheld);
-    //in->buttonsdown = bswap_16(in->buttonsdown);
-    //in->buttonsup   = bswap_16(in->buttonsup);
-}
-
 static int _net_init(char const* wii);
 static void _pad_data_to_uinput(struct _padstat_pack const *in);
+static void _init_uinput(void);
 
 // Socket descriptor
-static int desc;
+static int desc = -1;
+static int uinput_fd = -1;
 
 int main(int argc, char* argv[])
 {
@@ -70,10 +65,12 @@ int main(int argc, char* argv[])
 
     printf("Net initialized\n");
 
+    _init_uinput();
+
     // Receieve data
     while (1) {
         recv(desc, &pad, sizeof(struct _padstat_pack), 0);
-        _endian_byteswap(&pad);
+        pad.buttonsheld = bswap_16(pad.buttonsheld);
         _pad_data_to_uinput(&pad);
     }
 }
@@ -108,7 +105,7 @@ static int _net_init(char const* wii)
 
 // Shamelessly copied from libdrc.
 
-static int _init_uinput(void)
+static void _init_uinput(void)
 {
     // Try to open the uinput file descriptor.
     const char* uinput_filename[] = {
@@ -117,8 +114,6 @@ static int _init_uinput(void)
         "/dev/misc/uinput"
     };
 
-    int uinput_fd = -1;
-
     for (size_t i = 0; i < 3; ++i) {
         if ((uinput_fd = open(uinput_filename[i], O_RDWR)) != -1) {
             break;
@@ -126,7 +121,8 @@ static int _init_uinput(void)
     }
 
     if (uinput_fd < 0) {
-        return -1;
+        perror("uinput feeder");
+        exit(-1);
     }
 
     // Create the virtual device.
@@ -156,26 +152,10 @@ static int _init_uinput(void)
     }
 
     ioctl(uinput_fd, UI_DEV_CREATE);
-
-    return uinput_fd;
 }
 
 static void _pad_data_to_uinput(struct _padstat_pack const *in)
 {
-    static _Bool initialized = 0;
-    static int uinput_fd = -1;
-    if (!initialized) {
-        initialized = 1;
-        uinput_fd = _init_uinput();
-        if (uinput_fd == -1) {
-            perror("uinput feeder");
-        }
-    }
-
-    if (uinput_fd == -1) {
-        return;
-    }
-
     // Get the current timestamp
     struct timeval tv;
     gettimeofday(&tv, NULL);

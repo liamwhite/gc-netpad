@@ -1,14 +1,6 @@
 # GC-NetPad
 
-GC-NetPad is a thing I hacked up after playing with Dolphin on my computer.
-Using the keyboard to control is doable, certainly. But I want to use my
-GameCube controller, and I don't feel like spending money on an adaptor for
-my computer that I probably won't use very much.
-
-Solution:
-Write a server for the Wii that pushes controller data out to a client, then
-have the client emulate a joystick for the computer.
-
+I recommend you not use this.
 
 This program is written only for Linux users, and not planned to be extended to other
 platforms.

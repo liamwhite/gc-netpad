@@ -36,79 +36,84 @@
 #include <unistd.h>
 
 // Virtual stick radius used by uinput.
-static const int kStickRadius = 128;
+static const int STICK_RADIUS = 128;
 
 // Struct holding all data required for a complete controller stat
-struct _padstat_pack {
+typedef struct __attribute__((packed)) padstat {
     short buttonsheld; //, buttonsdown, buttonsup;
     char stick1X, stick1Y, stick2X, stick2Y;
-} __attribute__((packed));
+} padstat;
 
-static int _net_init(char const* wii);
-static void _pad_data_to_uinput(struct _padstat_pack const *in);
-static void _init_uinput(void);
+static int net_init(const char *wii);
+static void pad_data_to_uinput(const padstat *in);
+static void init_uinput();
 
-// Socket descriptor
-static int desc = -1;
+// Address information
+static struct sockaddr_in client = {0};
+static struct sockaddr_in server = {0};
+
+// File descriptors
+static int csock = -1;
+static int dsock = -1;
 static int uinput_fd = -1;
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
-    struct _padstat_pack pad = {0};
+    padstat pad = {0};
 
     if (argc != 2) {
         printf("Usage: %s <Wii IP>\n", argv[0]);
         return 1;
     }
 
-    if (_net_init(argv[1]) != 0) return 1;
+    if (net_init(argv[1]) != 0) {
+        return 1;
+    }
 
     printf("Net initialized\n");
 
-    _init_uinput();
+    init_uinput();
 
     // Receieve data
     while (1) {
-        recv(desc, &pad, sizeof(struct _padstat_pack), 0);
+        recv(csock, &pad, sizeof(padstat), 0);
         pad.buttonsheld = bswap_16(pad.buttonsheld);
-        _pad_data_to_uinput(&pad);
+        pad_data_to_uinput(&pad);
     }
 }
 
-static int _net_init(char const* wii)
+static int net_init(const char *wii)
 {
-    struct sockaddr_in sock = {0};
-    struct addrinfo *info   = NULL;
+    struct addrinfo *info = NULL;
 
     if (getaddrinfo(wii, NULL, NULL, &info) != 0) {
-        printf("Failed to resolve %s\n", wii);
+        perror("getaddrinfo");
         return -1;
     }
 
-    // Open socket for TCP communication
-    desc = socket(AF_INET, SOCK_STREAM, 6);
-
-    if (desc == -1) {
-        printf("Failed to open socket\n");
+    // Open communication socket over TCP
+    csock = socket(AF_INET, SOCK_STREAM, 6);
+    if (csock == -1) {
+        perror("socket");
         return -1;
     }
 
     // Connect socket
-    sock.sin_family = AF_INET;
-    sock.sin_port = htons(301);
-    sock.sin_addr = ((struct sockaddr_in *)info->ai_addr)->sin_addr;
+    server.sin_family = AF_INET;
+    server.sin_port = htons(301);
+    server.sin_addr = ((struct sockaddr_in *)info->ai_addr)->sin_addr;
 
     freeaddrinfo(info);
 
-    return connect(desc, (struct sockaddr *) &sock, sizeof(struct sockaddr_in));
+    return connect(csock, (struct sockaddr *) &server, sizeof(struct sockaddr_in));
 }
 
 // Shamelessly copied from libdrc.
 
-static void _init_uinput(void)
+static void init_uinput(void)
 {
     // Try to open the uinput file descriptor.
-    const char* uinput_filename[] = {
+    const char *uinput_filename[] = {
         "/dev/uinput",
         "/dev/input/uinput",
         "/dev/misc/uinput"
@@ -132,8 +137,8 @@ static void _init_uinput(void)
 
     // Enable joysticks: 4 axes (2 for each stick).
     for (int i = 0; i < 4; ++i) {
-        dev.absmin[i] = -kStickRadius;
-        dev.absmax[i] = kStickRadius;
+        dev.absmin[i] = -STICK_RADIUS;
+        dev.absmax[i] = STICK_RADIUS;
         ioctl(uinput_fd, UI_SET_ABSBIT, i);
     }
 
@@ -154,7 +159,7 @@ static void _init_uinput(void)
     ioctl(uinput_fd, UI_DEV_CREATE);
 }
 
-static void _pad_data_to_uinput(struct _padstat_pack const *in)
+static void pad_data_to_uinput(const padstat *in)
 {
     // Get the current timestamp
     struct timeval tv;
@@ -181,7 +186,7 @@ static void _pad_data_to_uinput(struct _padstat_pack const *in)
     for (int i = 16; i < 16 + 4; ++i) {
         evt[i].type = EV_ABS;
         evt[i].code = i - 16;
-        evt[i].value = sticks[i - 16]; /*((int)(sticks[i - 16] * kStickRadius));*/
+        evt[i].value = sticks[i - 16]; /*((int)(sticks[i - 16] * STICK_RADIUS));*/
         memcpy(&evt[i].time, &tv, sizeof(tv));
     }
 

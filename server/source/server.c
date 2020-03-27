@@ -99,7 +99,7 @@ static int _net_init(void)
     u32 clientlen;
 
     // Configure the network interface
-    bind = if_config (localip, netmask, gateway, TRUE);
+    bind = if_config (localip, netmask, gateway, TRUE, 10);
     if (bind >= 0) {
         printf("network configured, ip: %s, gw: %s, mask %s\n", localip, gateway, netmask);
         VIDEO_WaitVSync();

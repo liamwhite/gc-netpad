@@ -1,7 +1,7 @@
 /**
  * client.c
  *
- * Copyright (C) 2014 by Liam P. White
+ * Copyright (C) 2014-2020 by Liam P. White
  *
  * This file is part of GC-NetPad.
  * 
@@ -34,14 +34,15 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdint.h>
 
 // Virtual stick radius used by uinput.
 static const int STICK_RADIUS = 128;
 
 // Struct holding all data required for a complete controller stat
 typedef struct __attribute__((packed)) padstat {
-    short buttonsheld; //, buttonsdown, buttonsup;
-    char stick1X, stick1Y, stick2X, stick2Y;
+    uint16_t buttonsheld;
+    int8_t   stick1X, stick1Y, stick2X, stick2Y;
 } padstat;
 
 static int net_init(const char *wii);

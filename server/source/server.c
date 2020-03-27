@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // Now we've trapped our client, start sending our payload
+    // Now we've got our client, start sending pad data
     while (1) {
         get_pad_data(&pad_tmp, 0);
 
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
             // Copy it over
             memcpy(&pad1, &pad_tmp, sizeof(padstat));
             // Fire
-            net_send(csock, &pad1, sizeof(padstat), 0);
+            printf("net_sendto: %s\n", strerror(-net_sendto(dsock, &pad1, sizeof(padstat), 0, (struct sockaddr *) &client, sizeof(client))));
         }
 
         if (SYS_ResetButtonDown())
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 
 static int net_setup()
 {
-    u32 clientlen;
+    socklen_t clientlen;
     char localip[16] = {0};
     char gateway[16] = {0};
     char netmask[16] = {0};
@@ -110,8 +110,9 @@ static int net_setup()
 
     clientlen = sizeof(client);
     csock = net_socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
-    if (csock == INVALID_SOCKET) {
-        fprintf(stderr, "Failed to create socket\n");
+
+    if (csock < 0) {
+        fprintf(stderr, "Failed to create connection socket: %s\n", strerror(-csock));
         return 1;
     }
 
@@ -137,6 +138,24 @@ static int net_setup()
 
     if (csock < 0) {
         fprintf(stderr, "Error connecting socket %d\n", csock);
+        return 1;
+    }
+
+    // Open up the data socket
+    dsock = net_socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+
+    if (dsock < 0) {
+        fprintf(stderr, "Failed to create data socket: %s\n", strerror(-dsock));
+        return 1;
+    }
+
+    // Set the appropriate port, rest is persisted from the accept()
+    // call done above
+    client.sin_port = htons(3010);
+    server.sin_port = htons(3010);
+
+    if (net_bind(dsock, (struct sockaddr *) &server, sizeof(server)) < 0) {
+        perror("bind");
         return 1;
     }
 

@@ -77,7 +77,9 @@ int main(int argc, char *argv[])
 
     // Receieve data
     while (1) {
-        recv(csock, &pad, sizeof(padstat), 0);
+        socklen_t serverlen = sizeof(server);
+
+        printf("recvfrom: %ld\n", recvfrom(dsock, &pad, sizeof(padstat), 0, (struct sockaddr *) &server, &serverlen));
         pad.buttonsheld = bswap_16(pad.buttonsheld);
         pad_data_to_uinput(&pad);
     }
@@ -93,7 +95,7 @@ static int net_init(const char *wii)
     }
 
     // Open communication socket over TCP
-    csock = socket(AF_INET, SOCK_STREAM, 6);
+    csock = socket(AF_INET, SOCK_STREAM, 0);
     if (csock == -1) {
         perror("socket");
         return -1;
@@ -106,7 +108,30 @@ static int net_init(const char *wii)
 
     freeaddrinfo(info);
 
-    return connect(csock, (struct sockaddr *) &server, sizeof(struct sockaddr_in));
+    if (connect(csock, (struct sockaddr *) &server, sizeof(server)) < 0) {
+        perror("connect");
+        return -1;
+    }
+
+    // Open data socket on UDP
+    dsock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (dsock == -1) {
+        perror("socket");
+        return -1;
+    }
+
+    // Bind to appropriate port
+    client.sin_family = AF_INET;
+    client.sin_port = htons(3010);
+    client.sin_addr.s_addr = INADDR_ANY;
+
+    if (bind(dsock, (struct sockaddr *) &client, sizeof(client)) < 0) {
+        perror("bind");
+        return -1;
+    }
+
+    // Ready
+    return 0;
 }
 
 // Shamelessly copied from libdrc.

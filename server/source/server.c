@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
             // Copy it over
             memcpy(&pad1, &pad_tmp, sizeof(padstat));
             // Fire
-            printf("net_sendto: %s\n", strerror(-net_sendto(dsock, &pad1, sizeof(padstat), 0, (struct sockaddr *) &client, sizeof(client))));
+            net_sendto(dsock, &pad1, sizeof(padstat), 0, (struct sockaddr *) &client, client.sin_len);
         }
 
         if (SYS_ResetButtonDown())

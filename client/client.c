@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
     while (1) {
         socklen_t serverlen = sizeof(server);
 
-        printf("recvfrom: %ld\n", recvfrom(dsock, &pad, sizeof(padstat), 0, (struct sockaddr *) &server, &serverlen));
+        recvfrom(dsock, &pad, sizeof(padstat), 0, (struct sockaddr *) &server, &serverlen);
         pad.buttonsheld = bswap_16(pad.buttonsheld);
         pad_data_to_uinput(&pad);
     }
